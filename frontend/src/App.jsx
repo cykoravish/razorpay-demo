@@ -70,7 +70,7 @@ function App() {
 
     try {
       // Create order on backend
-      const orderResponse = await axios.post(`${API_BASE_URL}/create-order`, {
+      const orderResponse = await axios.post(`${API_BASE_URL}/api/create-order`, {
         amount: Number.parseFloat(formData.amount),
         currency: "INR",
       })
@@ -99,7 +99,7 @@ function App() {
         handler: async (response) => {
           try {
             // Verify payment on backend
-            const verifyResponse = await axios.post(`${API_BASE_URL}/verify-payment`, {
+            const verifyResponse = await axios.post(`${API_BASE_URL}/api/verify-payment`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
