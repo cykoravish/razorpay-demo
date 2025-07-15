@@ -84,7 +84,7 @@ function App() {
         amount: order.amount,
         currency: order.currency,
         name: "Demo Store",
-        description: "Payment for order",
+        description: "UPI Payment - Scan QR or use UPI apps",
         order_id: order.id,
         prefill: {
           name: formData.name,
@@ -93,6 +93,7 @@ function App() {
         },
         notes: {
           location: formData.location,
+          payment_type: "upi_with_qr",
         },
         theme: {
           color: "#00D4AA",
@@ -111,36 +112,36 @@ function App() {
         config: {
           display: {
             blocks: {
-              banks: {
-                name: "Pay using UPI",
+              utib: {
+                name: "UPI",
                 instruments: [
                   {
                     method: "upi",
-                    flows: ["collect", "intent", "qr"],
+                    flows: ["qr", "collect", "intent"],
                   },
                 ],
               },
             },
-            hide: [
-              {
-                method: "card",
-              },
-              {
-                method: "netbanking",
-              },
-              {
-                method: "wallet",
-              },
-            ],
-            sequence: ["block.banks"],
+            sequence: ["block.utib"],
             preferences: {
-              show_default_blocks: false,
+              show_default_blocks: true,
             },
           },
         },
         upi: {
-          flow: ["collect", "intent", "qr"],
+          flow: ["qr", "collect", "intent"], // QR first
           apps: ["phonepe", "googlepay", "paytm", "bhim", "amazonpay"],
+          qr: {
+            show: true,
+            size: "medium",
+          },
+        },
+        display: {
+          language: "en",
+        },
+        readonly: {
+          email: false,
+          contact: false,
         },
         modal: {
           confirm_close: true,
