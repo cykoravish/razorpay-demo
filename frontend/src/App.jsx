@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import axios from "axios"
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://razorpay-demo-api.onrender.com"
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://razorpay-demo-api.onrender.com";
 
 function App() {
   const [formData, setFormData] = useState({
@@ -12,70 +13,70 @@ function App() {
     email: "",
     phone: "",
     location: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   useEffect(() => {
-    let attempts = 0
-    const maxAttempts = 50 // 5 seconds max wait time
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds max wait time
 
     const checkRazorpay = () => {
       if (window.Razorpay) {
-        console.log("Razorpay loaded successfully")
-        setRazorpayLoaded(true)
+        console.log("Razorpay loaded successfully");
+        setRazorpayLoaded(true);
       } else if (attempts < maxAttempts) {
-        attempts++
-        setTimeout(checkRazorpay, 100)
+        attempts++;
+        setTimeout(checkRazorpay, 100);
       } else {
-        console.error("Razorpay failed to load after 5 seconds")
-        setMessage("Failed to load payment gateway. Please refresh the page.")
+        console.error("Razorpay failed to load after 5 seconds");
+        setMessage("Failed to load payment gateway. Please refresh the page.");
       }
-    }
+    };
 
     // Start checking immediately
-    checkRazorpay()
-  }, [])
-
-  useEffect(() => {
-    console.log("Razorpay loaded status:", razorpayLoaded)
-    console.log("Window.Razorpay exists:", !!window.Razorpay)
-  }, [razorpayLoaded])
+    checkRazorpay();
+  }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handlePayment = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!formData.amount || !formData.name || !formData.email) {
-      setMessage("Please fill in all required fields")
-      return
+      setMessage("Please fill in all required fields");
+      return;
     }
 
     // Check if Razorpay is loaded
     if (!window.Razorpay) {
-      setMessage("Razorpay SDK not loaded. Please refresh the page and try again.")
-      return
+      setMessage(
+        "Razorpay SDK not loaded. Please refresh the page and try again."
+      );
+      return;
     }
 
-    setLoading(true)
-    setMessage("")
+    setLoading(true);
+    setMessage("");
 
     try {
       // Create order on backend
-      const orderResponse = await axios.post(`${API_BASE_URL}/api/create-order`, {
-        amount: Number.parseFloat(formData.amount),
-        currency: "INR",
-      })
+      const orderResponse = await axios.post(
+        `${API_BASE_URL}/api/create-order`,
+        {
+          amount: Number.parseFloat(formData.amount),
+          currency: "INR",
+        }
+      );
 
-      const { order } = orderResponse.data
+      const { order } = orderResponse.data;
 
       // Configure Razorpay options
       const options = {
@@ -94,63 +95,119 @@ function App() {
           location: formData.location,
         },
         theme: {
-          color: "#3B82F6",
+          color: "#00D4AA",
+          backdrop_color: "rgba(0, 0, 0, 0.5)",
+        },
+        method: {
+          upi: true,
+          card: false,
+          netbanking: false,
+          wallet: false,
+          emi: false,
+          paylater: false,
+          cardless_emi: false,
+          bank_transfer: false,
+        },
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: "Pay using UPI",
+                instruments: [
+                  {
+                    method: "upi",
+                    flows: ["collect", "intent", "qr"],
+                  },
+                ],
+              },
+            },
+            hide: [
+              {
+                method: "card",
+              },
+              {
+                method: "netbanking",
+              },
+              {
+                method: "wallet",
+              },
+            ],
+            sequence: ["block.banks"],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
+        },
+        upi: {
+          flow: ["collect", "intent", "qr"],
+          apps: ["phonepe", "googlepay", "paytm", "bhim", "amazonpay"],
+        },
+        modal: {
+          confirm_close: true,
+          escape: false,
+          animation: true,
+          backdropclose: false,
+          ondismiss: () => {
+            setMessage("Payment cancelled");
+            setLoading(false);
+          },
         },
         handler: async (response) => {
           try {
             // Verify payment on backend
-            const verifyResponse = await axios.post(`${API_BASE_URL}/api/verify-payment`, {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            })
+            const verifyResponse = await axios.post(
+              `${API_BASE_URL}/api/verify-payment`,
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }
+            );
 
             if (verifyResponse.data.success) {
-              setMessage("Payment successful! Thank you for your purchase.")
+              setMessage("Payment successful! Thank you for your purchase.");
               setFormData({
                 amount: "",
                 name: "",
                 email: "",
                 phone: "",
                 location: "",
-              })
+              });
             } else {
-              setMessage("Payment verification failed. Please contact support.")
+              setMessage(
+                "Payment verification failed. Please contact support."
+              );
             }
           } catch (error) {
-            console.error("Payment verification error:", error)
-            setMessage("Payment verification failed. Please contact support.")
+            console.error("Payment verification error:", error);
+            setMessage("Payment verification failed. Please contact support.");
+          } finally {
+            setLoading(false);
           }
         },
-        modal: {
-          ondismiss: () => {
-            setMessage("Payment cancelled")
-            setLoading(false)
-          },
-        },
-      }
+      };
 
       // Create Razorpay instance with error handling
       try {
-        const rzp = new window.Razorpay(options)
+        const rzp = new window.Razorpay(options);
 
         rzp.on("payment.failed", (response) => {
-          setMessage(`Payment failed: ${response.error.description}`)
-          setLoading(false)
-        })
+          setMessage(`Payment failed: ${response.error.description}`);
+          setLoading(false);
+        });
 
-        rzp.open()
+        rzp.open();
       } catch (razorpayError) {
-        console.error("Razorpay initialization error:", razorpayError)
-        setMessage("Failed to initialize payment gateway. Please try again.")
-        setLoading(false)
+        console.error("Razorpay initialization error:", razorpayError);
+        setMessage("Failed to initialize payment gateway. Please try again.");
+        setLoading(false);
       }
     } catch (error) {
-      console.error("Payment error:", error)
-      setMessage("Failed to initiate payment. Please try again.")
-      setLoading(false)
+      console.error("Payment error:", error);
+      setMessage("Failed to initiate payment. Please try again.");
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -163,7 +220,10 @@ function App() {
         <div className="bg-white shadow-lg rounded-lg p-6">
           <form onSubmit={handlePayment} className="space-y-6">
             <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="amount"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Amount (₹) *
               </label>
               <input
@@ -181,7 +241,10 @@ function App() {
             </div>
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Full Name *
               </label>
               <input
@@ -197,7 +260,10 @@ function App() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email Address *
               </label>
               <input
@@ -213,7 +279,10 @@ function App() {
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Phone Number
               </label>
               <input
@@ -228,7 +297,10 @@ function App() {
             </div>
 
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Location
               </label>
               <input
@@ -251,7 +323,11 @@ function App() {
                   : "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               }`}
             >
-              {!razorpayLoaded ? "Loading Payment Gateway..." : loading ? "Processing..." : "Pay Now"}
+              {!razorpayLoaded
+                ? "Loading Payment Gateway..."
+                : loading
+                ? "Processing..."
+                : "Pay Now"}
             </button>
           </form>
 
@@ -273,7 +349,7 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
